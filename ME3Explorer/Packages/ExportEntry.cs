@@ -54,6 +54,7 @@ namespace ME3Explorer.Packages
             FileRef = file;
             OriginalDataSize = 0;
             HeaderOffset = (uint)stream.Position;
+
             switch (file.Game)
             {
                 case MEGame.ME1:
@@ -88,6 +89,8 @@ namespace ME3Explorer.Packages
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+            Debug.WriteLine($"Read Export {ObjectName} at {HeaderOffset:X6}");
+
             OriginalDataSize = DataSize;
             long headerEnd = stream.Position;
 

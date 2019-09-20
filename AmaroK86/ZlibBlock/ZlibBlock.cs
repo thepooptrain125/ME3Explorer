@@ -8,21 +8,32 @@ namespace AmaroK86.MassEffect3.ZlibBlock
 {
     public static class ZBlock
     {
-        public static readonly uint magic = 0x9E2A83C1;
-        public static readonly uint maxSegmentSize = 0x20000;
+        public const uint magic = 0x9E2A83C1;
+        public const uint maxSegmentSize = 0x20000; //this will be removed later
+
+        public static Task<byte[]> DecompressAsync(byte[] buffer)
+        {
+            if (buffer == null)
+                throw new ArgumentNullException();
+            return Task.Run(() =>
+            {
+                return Decompress(buffer);
+            });
+        }
+
 
         /*
-         * Name function: Compress
-         * Purpose: compress a part of the byte array into a Zlib Block
-         * Input: - buffer: byte array
-         * Output: compressed byte array block, the structure is:
-         *         - magic word
-         *         - max segment size
-         *         - total compressed size
-         *         - total uncompressed size
-         *         - segment list
-         *         - compressed data list
-         */
+ * Name function: Compress
+ * Purpose: compress a part of the byte array into a Zlib Block
+ * Input: - buffer: byte array
+ * Output: compressed byte array block, the structure is:
+ *         - magic word
+ *         - max segment size
+ *         - total compressed size
+ *         - total uncompressed size
+ *         - segment list
+ *         - compressed data list
+ */
         public static byte[] Compress(byte[] buffer)
         {
             if (buffer == null)
@@ -68,40 +79,6 @@ namespace AmaroK86.MassEffect3.ZlibBlock
             return finalBlock;
         }
 
-        /*
-         * Name function: Compress
-         * Purpose: compress a part of the stream into a Zlib Block
-         * Input: - inStream: input Stream
-         *        - count: num of bytes to compress starting from the Stream position
-         * Output: compressed byte array block, the structure is:
-         *         - magic word
-         *         - max segment size
-         *         - total compressed size
-         *         - total uncompressed size
-         *         - segment list
-         *         - compressed data list
-         */
-        public static byte[] Compress(Stream inStream, int count)
-        {
-            if (count < 0)
-                throw new FormatException();
-            if (inStream.Position + count > inStream.Length)
-                throw new ArgumentOutOfRangeException();
-            byte[] buffer = new byte[count];
-            inStream.Read(buffer, 0, count);
-            return Compress(buffer);
-        }
-
-        public static Task<byte[]> DecompressAsync(byte[] buffer)
-        {
-            if (buffer == null)
-                throw new ArgumentNullException();
-            return Task.Run(() =>
-            {
-                return Decompress(buffer);
-            });
-        }
-
         public static byte[] Decompress(byte[] buffer)
         {
             if (buffer == null)
@@ -110,7 +87,7 @@ namespace AmaroK86.MassEffect3.ZlibBlock
             using (MemoryStream buffStream = new MemoryStream(buffer))
             {
                 uint magicStream = buffStream.ReadValueU32();
-                if (magicStream != magic && magicStream.Swap() != magic)
+                if (magicStream != magic && magicStream.Swap() != magic) //this should be removed as this is from when we used to try and support .xxx files
                 {
                     throw new InvalidDataException("found an invalid zlib block");
                 }
@@ -125,44 +102,33 @@ namespace AmaroK86.MassEffect3.ZlibBlock
                 uint totUncomprSize = buffStream.ReadValueU32();
 
                 byte[] outputBuffer = new byte[totUncomprSize];
-                int numOfSegm = (int)Math.Ceiling(totUncomprSize / (double)maxSegmentSize);
-                int headSegm = 16;
-                int dataSegm = headSegm + (numOfSegm * 8);
+                int numBlocks = (int)Math.Ceiling(totUncomprSize / (double)maxSegmentSize);
+                int startOfBlocksOffset = 16;
+                int blockDataOffset = startOfBlocksOffset + (numBlocks * 8);
                 int buffOff = 0;
 
-                for (int i = 0; i < numOfSegm; i++)
+                for (int i = 0; i < numBlocks; i++)
                 {
-                    buffStream.Seek(headSegm, SeekOrigin.Begin);
-                    int comprSegm = buffStream.ReadValueS32();
-                    int uncomprSegm = buffStream.ReadValueS32();
-                    headSegm = (int)buffStream.Position;
+                    buffStream.Seek(startOfBlocksOffset, SeekOrigin.Begin);
+                    int compresesedSize = buffStream.ReadValueS32(); //compressed size
+                    int uncompressedSize = buffStream.ReadValueS32(); //uncompressed size
+                    startOfBlocksOffset = (int)buffStream.Position; //next block header position
 
-                    buffStream.Seek(dataSegm, SeekOrigin.Begin);
+                    buffStream.Seek(blockDataOffset, SeekOrigin.Begin);
                     //Console.WriteLine("compr size: {0}, uncompr size: {1}, data offset: 0x{2:X8}", comprSegm, uncomprSegm, dataSegm);
-                    byte[] src = buffStream.ReadBytes(comprSegm);
-                    byte[] dst = new byte[uncomprSegm];
-                    if (Zlib.Decompress(src, (uint)src.Length, dst) != uncomprSegm)
-                        throw new Exception("Zlib decompression failed!");
+                    byte[] src = buffStream.ReadBytes(compresesedSize);
+                    byte[] dst = new byte[uncompressedSize];
+                    if (Zlib.Decompress(src, (uint)src.Length, dst) != uncompressedSize)
+                        throw new Exception("Zlib decompression failed! Amount decompressed does not match expected size");
 
-                    Buffer.BlockCopy(dst, 0, outputBuffer, buffOff, uncomprSegm);
+                    Buffer.BlockCopy(dst, 0, outputBuffer, buffOff, uncompressedSize);
 
-                    buffOff += uncomprSegm;
-                    dataSegm += comprSegm;
+                    buffOff += uncompressedSize;
+                    blockDataOffset += compresesedSize;
                 }
                 buffStream.Close();
                 return outputBuffer;
             }
-        }
-
-        public static byte[] Decompress(Stream inStream, int count)
-        {
-            if (count < 0)
-                throw new FormatException();
-            if (inStream.Position + count > inStream.Length)
-                return new byte[count];
-            byte[] buffer = new byte[count];
-            inStream.Read(buffer, 0, count);
-            return Decompress(buffer);
         }
     }
 }

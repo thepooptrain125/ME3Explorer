@@ -246,9 +246,14 @@ namespace ME3Explorer.Packages
                 Stream inStream = fs;
                 if (IsCompressed && numChunks > 0)
                 {
+                    MemoryStream decompressedStream = new MemoryStream();
+                    fs.Position = 0;
+                    fs.CopyToEx(decompressedStream, (int) fs.Position);
                     inStream = Game == MEGame.ME3 ? CompressionHelper.DecompressME3(fs) : CompressionHelper.DecompressME1orME2(fs);
+                    inStream.Position = 0;
+                    inStream.CopyTo(decompressedStream);
+                    File.WriteAllBytes(@"c:\users\public\decompressedfile.bin", decompressedStream.ToArray());
                 }
-
                 //read namelist
                 inStream.JumpTo(NameOffset);
                 for (int i = 0; i < NameCount; i++)
@@ -271,6 +276,7 @@ namespace ME3Explorer.Packages
 
                 //read exportTable (ExportEntry constructor reads export data)
                 inStream.JumpTo(ExportOffset);
+                Debug.WriteLine("Exports Offset at " + ExportOffset);
                 for (int i = 0; i < ExportCount; i++)
                 {
                     ExportEntry e = new ExportEntry(this, inStream) { Index = i };

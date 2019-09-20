@@ -275,19 +275,19 @@ namespace ME3Explorer.Packages
             input.Seek(20, SeekOrigin.Current);
             headerSize += 24;
 
-            var blockCount = input.ReadValueU32(endian);
-            int headBlockOff = (int)input.Position;
-            var afterBlockTableOffset = headBlockOff + (blockCount * 16);
-            var indataOffset = afterBlockTableOffset + 8;
+            var chunkCount = input.ReadValueU32(endian);
+            int headChunkOffset = (int)input.Position;
+            var afterChunkTableOffset = headChunkOffset + (chunkCount * 16);
+            var indataOffset = afterChunkTableOffset + 8;
 
             input.Seek(0, SeekOrigin.Begin);
             MemoryStream output = new MemoryStream();
             output.Seek(0, SeekOrigin.Begin);
 
             output.WriteFromStream(input, headerSize);
-            output.WriteValueU32(0, endian); // block count
+            output.WriteValueU32(0, endian); // chunk count. since we are decompressing, set to 0
 
-            input.Seek(afterBlockTableOffset, SeekOrigin.Begin);
+            input.Seek(afterChunkTableOffset, SeekOrigin.Begin);
             output.WriteFromStream(input, 8);
 
             //check if has extra name list (don't know it's usage...)
@@ -298,16 +298,16 @@ namespace ME3Explorer.Packages
             }
 
             //decompress blocks in parallel
-            var tasks = new Task<byte[]>[blockCount];
-            var uncompressedOffsets = new uint[blockCount];
-            for (int i = 0; i < blockCount; i++)
+            var tasks = new Task<byte[]>[chunkCount];
+            var uncompressedOffsets = new uint[chunkCount];
+            for (int i = 0; i < chunkCount; i++)
             {
-                input.Seek(headBlockOff, SeekOrigin.Begin);
+                input.Seek(headChunkOffset, SeekOrigin.Begin);
                 uncompressedOffsets[i] = input.ReadValueU32(endian);
                 var uncompressedSize = input.ReadValueU32(endian);
                 var compressedOffset = input.ReadValueU32(endian);
                 var compressedSize = input.ReadValueU32(endian);
-                headBlockOff = (int)input.Position;
+                headChunkOffset = (int)input.Position;
 
                 var buff = new byte[compressedSize];
                 input.Seek(compressedOffset, SeekOrigin.Begin);
@@ -316,7 +316,7 @@ namespace ME3Explorer.Packages
                 tasks[i] = AmaroK86.MassEffect3.ZlibBlock.ZBlock.DecompressAsync(buff);
             }
             Task.WaitAll(tasks);
-            for (int i = 0; i < blockCount; i++)
+            for (int i = 0; i < chunkCount; i++)
             {
                 output.Seek(uncompressedOffsets[i], SeekOrigin.Begin);
                 output.WriteBytes(tasks[i].Result);
@@ -517,30 +517,6 @@ namespace ME3Explorer.Packages
             return outputStream;
         }
 
-        /// <summary>
-        ///     compress an entire ME3 pcc into a file.
-        /// </summary>
-        /// <param name="uncompressedPcc">uncompressed pcc stream.</param>
-        /// <param name="pccFileName">pcc file name to save.</param>
-        /// <returns>a compressed pcc file.</returns>
-        public static void CompressAndSave(Stream uncompressedPcc, string pccFileName)
-        {
-            using (FileStream outputStream = new FileStream(pccFileName, FileMode.Create, FileAccess.Write))
-            {
-                Compress(uncompressedPcc).CopyTo(outputStream);
-            }
-        }
-
-        /// <summary>
-        ///     compress an entire ME3 pcc into a file.
-        /// </summary>
-        /// <param name="uncompressedPcc">uncompressed pcc file stored in a byte array.</param>
-        /// <param name="pccFileName">pcc file name to save.</param>
-        /// <returns>a compressed pcc file.</returns>
-        public static void CompressAndSave(byte[] uncompressedPcc, string pccFileName)
-        {
-            CompressAndSave(new MemoryStream(uncompressedPcc), pccFileName);
-        }
         #endregion
     }
 }
