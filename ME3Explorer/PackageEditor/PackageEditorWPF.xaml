@@ -246,6 +246,7 @@
                     <MenuItem Header="Run PropertyCollection test" Click="RunPropertyCollectionTest"/>
                     <MenuItem Header="UDKify" Click="UDKifyTest"/>
                     <MenuItem Header="Make List of ME1 files with externally referenced textures" Click="MakeME1TextureFileList"/>
+                    <MenuItem Header="Dump AnimCutscene FindObjectByTag items" Click="DumpAnimCutsceneTags"/>
                 </MenuItem>
             </Menu>
             <StatusBar Height="23" DockPanel.Dock="Bottom">

@@ -644,6 +644,87 @@ namespace ME3Explorer
             }
         }
 
+        private void DumpAnimCutsceneTags(object sender, RoutedEventArgs e)
+        {
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += (a, b) =>
+            {
+                var me2dir = ME2Directory.BioGamePath;
+                var files = Directory.GetFiles(me2dir, "*.pcc", SearchOption.AllDirectories).ToList();
+                SortedSet<string> tags = new SortedSet<string>();
+                foreach (var file in files)
+                {
+                    //if (Path.GetFileName(file) != "BioD_EndGm1_110ROMMirranda.pcc") continue;
+                    // Debug.WriteLine(file);
+                    using var package = MEPackageHandler.OpenMEPackage(file);
+                    var pawns = package.Exports.Where(x => x.IsOrInheritsFrom("Pawn"));
+                    foreach (var p in pawns)
+                    {
+                        var tag = p.GetProperty<NameProperty>("Tag");
+                        if (tag != null && tags.Add(tag.Value))
+                        {
+                            Debug.WriteLine(tag.Value);
+                        }
+                    }
+                    //                    var interps = package.Exports.Where(x => x.ClassName == "SeqAct_Interp");
+                    /*      foreach (var interp in interps)
+                          {
+                              var varlinks = interp.GetProperty<ArrayProperty<StructProperty>>("VariableLinks");
+                              foreach (var link in varlinks)
+                              {
+                                  var expectedType = link.GetProp<ObjectProperty>("ExpectedType");
+                                  var type = package.GetEntry(expectedType.Value);
+                                  if (type.ObjectName == "SeqVar_Object")
+                                  {
+                                      var linkedVars = link.GetProp<ArrayProperty<ObjectProperty>>("LinkedVariables");
+                                      foreach (var linkedVar in linkedVars)
+                                      {
+                                          var referencedItem = package.GetUExport(linkedVar.Value);
+                                          if (referencedItem.ClassName == "BioSeqVar_ObjectFindByTag")
+                                          {
+                                              var tag = referencedItem.GetProperty<StrProperty>("m_sObjectTagToFind");
+                                              if (tag != null)
+                                              {
+                                                  if (tag.Value.Contains("cam", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("prop", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("door", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("pointlight", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("backlight", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("gethlight", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("cinebullet", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("Hatch_", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("matte_painting", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("Normandy_Flare", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("unwelder_spark", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("smoke_plane", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("room_light", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("hologram_col", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("bottling", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("console_keylight", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("geth_turret", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("conflict_lookat", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("geth_gib", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("citasl_target", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("grunterhater_", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("conflict_chair", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("SUB_KRO_Shot", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("chair_crust", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("cd_ship", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("touchpad", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("gunshotflash", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("clanleader_fake_canister", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("gunshotflash", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("clanleader_fake_canister", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("mechanic_cigarette", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("clanleader_fake_canister", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("lighter_light", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("clanleader_fake_canister", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("Batarian_smoke", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("clanleader_fake_canister", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("Voice_modifier", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("clanleader_fake_canister", StringComparison.OrdinalIgnoreCase)) continue; //skip
+                                                  if (tag.Value.Contains("reticle", StringComparison.OrdinalIgnoreCase) || tag.Value.Contains("clanleader_fake_canister", StringComparison.OrdinalIgnoreCase)) continue; //skip
+
+                                                  if (tags.Add(tag.Value))
+                                                  {
+                                                      Debug.WriteLine(tag.Value);
+                                                  }
+                                              }
+                                          }
+                                      }
+                                  }
+                              }
+                          }*/
+
+
+
+                }
+                File.WriteAllText(@"C:\Users\public\me2tags.txt", string.Join("\n", tags.ToList()));
+            };
+            bw.RunWorkerAsync();
+        }
+
         private void FindEntryViaTag()
         {
             List<IndexedName> indexedList = Pcc.Names.Select((nr, i) => new IndexedName(i, nr)).ToList();
@@ -4688,7 +4769,7 @@ namespace ME3Explorer
         private void MakeME1TextureFileList(object sender, RoutedEventArgs e)
         {
             var filePaths = MELoadedFiles.GetOfficialFiles(MEGame.ME1).ToList();
-            
+
             IsBusy = true;
             BusyText = "Scanning";
             Task.Run(() =>
@@ -4697,7 +4778,7 @@ namespace ME3Explorer
                 foreach (string filePath in filePaths)
                 {
                     using IMEPackage pcc = MEPackageHandler.OpenMEPackage(filePath);
-                    
+
                     foreach (ExportEntry export in pcc.Exports)
                     {
                         try
