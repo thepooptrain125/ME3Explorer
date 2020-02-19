@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -86,7 +87,7 @@ namespace ME3Explorer
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            ServicePointManager.SecurityProtocol |=  SecurityProtocolType.Tls12;
+            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
             //API keys are not stored in the git repository for ME3Explorer.
             //You will need to provide your own keys for use by defining public properties
             //in a partial APIKeys class.
@@ -106,6 +107,28 @@ namespace ME3Explorer
             System.Windows.Forms.Application.EnableVisualStyles();
             System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
             System.Windows.Forms.Integration.WindowsFormsHost.EnableWindowsFormsInterop();
+            //var ps3path = @"X:\Mass Effect Builds\ME\Mass Effect\PS3_GAME\USRDIR\BIOGAME\COOKEDPS3";
+            //var ps3isb = Directory.GetFiles(ps3path, "*.isb", SearchOption.AllDirectories).Select(x => Path.GetFileNameWithoutExtension(x).ToLower()).ToList();
+            //var pcisb = Directory.GetFiles(@"D:\Origin Games\Mass Effect", "*.isb", SearchOption.AllDirectories).Select(x => Path.GetFileNameWithoutExtension(x).ToLower()).ToList();
+            //Debug.WriteLine(ps3isb.Count);
+            //Debug.WriteLine(pcisb.Count);
+
+            //var pconly = pcisb.Except(ps3isb).ToList();
+            //var ps3only = ps3isb.Where(x => (x.EndsWith("_de")) && !ps3isb.Contains(x.Substring(0, x.Length - 3)) && !pcisb.Contains(x.Substring(0, x.Length - 3)) && new FileInfo(Path.Combine(ps3path, x + ".isb")).Length > 3000).Except(pcisb).ToList();
+
+            //var result = String.Join("\n", ps3only.ToArray());
+            //Debug.WriteLine(result);
+            //var conv = @"C:\Users\mgame\source\repos\vgmstream\Debug\test.exe";
+            //foreach (var v in ps3only)
+            //{
+            //    var isb = Path.Combine(ps3path, v + ".isb");
+            //    Debug.WriteLine($"Converting {isb}");
+            //    Debug.WriteLine($"cmd /K \"\"{conv}\" \"{isb}\"\"");
+            //    var p = Process.Start("cmd.exe", $"/C \"\"{conv}\" \"{isb}\"\"");
+            //    p.StartInfo.CreateNoWindow = true;
+            //    p.WaitForExit();
+           // }
+            //Environment.Exit(0);
 
             //set up AppData Folder
             if (!Directory.Exists(AppDataFolder))
@@ -259,7 +282,7 @@ namespace ME3Explorer
                 exitCode = 0;
                 return 1;
             }
-                
+
             string ending = Path.GetExtension(args[1]).ToLower();
             switch (ending)
             {

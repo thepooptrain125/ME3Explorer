@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using Gammtek.Conduit.Extensions.IO;
+using ME3Explorer.ME2.TlkManager;
 
 namespace ME3Explorer
 {
@@ -90,9 +92,12 @@ namespace ME3Explorer
              * 
              * reading first 28 (4 * 7) bytes 
              */
-            
+
             Stream fs = File.OpenRead(fileName);
-            BinaryReader r = new BinaryReader(fs);
+            var magic = fs.ReadInt32();
+            fs.Seek(0, SeekOrigin.Begin); //reset
+            EndiannessAwareBinaryReader r = new EndiannessAwareBinaryReader(fs, magic == 1416391424 ? EndiannessAwareBinaryReader.Endianness.Big : EndiannessAwareBinaryReader.Endianness.Little);
+
             Header = new TLKHeader(r);
 
             //DebugTools.PrintHeader(Header);
@@ -133,12 +138,12 @@ namespace ME3Explorer
             {
                 int key = offset;
                 // if (key > maxOffset)
-                    // maxOffset = key;
+                // maxOffset = key;
                 /* read the string and update 'offset' variable to store NEXT string offset */
                 string s = GetString(ref offset);
                 rawStrings.Add(key, s);
             }
-            
+
             // Console.WriteLine("Max offset = " + maxOffset);
 
             /* **************** STEP FIVE ****************
